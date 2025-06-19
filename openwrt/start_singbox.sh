@@ -18,15 +18,6 @@ check_mode() {
 
 # 启动 sing-box 服务
 start_singbox() {
-    echo -e "${CYAN}检测是否处于非代理环境...${NC}"
-    STATUS_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "https://www.google.com")
-
-    if [ "$STATUS_CODE" -eq 200 ]; then
-        echo -e "${RED}当前网络处于代理环境, 启动 sing-box 需要直连!${NC}"
-    else
-        echo -e "${CYAN}当前网络环境非代理网络，可以启动 sing-box。${NC}"
-    fi
-
     # 启动 sing-box 服务
     /etc/init.d/sing-box start
 

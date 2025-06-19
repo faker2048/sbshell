@@ -20,6 +20,9 @@ Sbshell 是一款针对 官方sing-box 的辅助运行脚本，旨在解决官�
 
 ## 一键脚本：(请自行安装curl和bash，如果缺少的话)
 ```
+# 无镜像加速
+bash <(curl -sL https://raw.githubusercontent.com/faker2048/sbshell/refs/heads/main//sbshall.sh)
+# 带加速
 bash <(curl -sL https://gh-proxy.com/https://raw.githubusercontent.com/faker2048/sbshell/refs/heads/main//sbshall.sh)
 ```
 - 初始化运行结束，输入“**sb**”进入菜单
