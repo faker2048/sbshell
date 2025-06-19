@@ -2,6 +2,7 @@
 # 定义主脚本的下载URL
 DEBIAN_MAIN_SCRIPT_URL="https://gh-proxy.com/https://raw.githubusercontent.com/faker2048/sbshell/refs/heads/main/debian/menu.sh"
 OPENWRT_MAIN_SCRIPT_URL="https://gh-proxy.com/https://raw.githubusercontent.com/faker2048/sbshell/refs/heads/main/openwrt/menu.sh"
+GITHUB_API_URL="https://gh-proxy.com/https://api.github.com/repos/faker2048/sbshell/commits/main"
  
 # 脚本下载目录
 SCRIPT_DIR="/etc/sing-box/scripts"
@@ -10,13 +11,45 @@ SCRIPT_DIR="/etc/sing-box/scripts"
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+CYAN='\033[0;36m'
 NC='\033[0m' # 无颜色
+
+# 获取最后一次commit时间
+get_last_commit_time() {
+    echo -e "${CYAN}获取项目最新更新信息...${NC}"
+    
+    # 使用gh-proxy.com加速访问GitHub API
+    COMMIT_INFO=$(curl -s --connect-timeout 10 --max-time 15 "$GITHUB_API_URL" 2>/dev/null)
+    
+    if [ $? -eq 0 ] && echo "$COMMIT_INFO" | grep -q "commit"; then
+        # 提取commit时间和消息
+        COMMIT_DATE=$(echo "$COMMIT_INFO" | grep -o '"date":"[^"]*"' | head -1 | cut -d'"' -f4)
+        COMMIT_MESSAGE=$(echo "$COMMIT_INFO" | grep -o '"message":"[^"]*"' | head -1 | cut -d'"' -f4)
+        
+        if [ -n "$COMMIT_DATE" ]; then
+            # 转换UTC时间为可读格式
+            if command -v date &> /dev/null; then
+                LOCAL_TIME=$(date -d "$COMMIT_DATE" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "$COMMIT_DATE")
+            else
+                LOCAL_TIME="$COMMIT_DATE"
+            fi
+            echo -e "${GREEN}最新更新时间: ${LOCAL_TIME}${NC}"
+            [ -n "$COMMIT_MESSAGE" ] && echo -e "${GREEN}更新内容: ${COMMIT_MESSAGE}${NC}"
+        fi
+    else
+        echo -e "${YELLOW}无法获取更新信息，继续安装...${NC}"
+    fi
+    echo ""
+}
 
 # 检查系统是否支持
 if [[ "$(uname -s)" != "Linux" ]]; then
     echo -e "${RED}当前系统不支持运行此脚本。${NC}"
     exit 1
 fi
+
+# 显示commit信息
+get_last_commit_time
 
 # 检查发行版并下载相应的主脚本
 if grep -qi 'debian\|ubuntu\|armbian' /etc/os-release; then
