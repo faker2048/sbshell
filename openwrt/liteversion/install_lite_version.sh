@@ -18,11 +18,13 @@ OPENWRT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # 需要拷贝的文件列表
 FILES=(
-    "install_singbox.sh"
     "manage_autostart.sh"
     "start_singbox.sh"
     "stop_singbox.sh"
-    "liteversion/install_lite_version.sh"
+    "configure_tun.sh"
+    "configure_tproxy.sh"
+    "liteversion/update_config.sh"
+    "liteversion/install_singbox.sh"
 )
 
 echo -e "${CYAN}拷贝文件到 $TARGET_DIR ...${NC}"

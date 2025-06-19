@@ -147,7 +147,10 @@ install_lite_version() {
         ["$GITHUB_RAW_URL/openwrt/manage_autostart.sh"]="manage_autostart.sh"
         ["$GITHUB_RAW_URL/openwrt/start_singbox.sh"]="start_singbox.sh"
         ["$GITHUB_RAW_URL/openwrt/stop_singbox.sh"]="stop_singbox.sh"
-        ["$GITHUB_RAW_URL/openwrt/liteversion/install_lite_version.sh"]="install_lite_version.sh"
+        ["$GITHUB_RAW_URL/openwrt/configure_tun.sh"]="configure_tun.sh"
+        ["$GITHUB_RAW_URL/openwrt/configure_tproxy.sh"]="configure_tproxy.sh"
+        ["$GITHUB_RAW_URL/openwrt/liteversion/install_lite_version.sh"]="install_lite_version.sh"  
+        ["$GITHUB_RAW_URL/openwrt/liteversion/install_singbox.sh"]="install_singbox.sh"
     )
     
     echo -e "${CYAN}下载文件到 $TARGET_DIR ...${NC}"
