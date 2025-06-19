@@ -141,20 +141,101 @@ else
     sudo chown "$(whoami)":"$(whoami)" "$SCRIPT_DIR"
 fi
 
-# 下载并执行主脚本
-if grep -qi 'openwrt' /etc/os-release; then
-    curl -s -o "$SCRIPT_DIR/menu.sh" "$MAIN_SCRIPT_URL"
-else
-    wget -q -O "$SCRIPT_DIR/menu.sh" "$MAIN_SCRIPT_URL"
-fi
+# 显示菜单选项
+show_menu() {
+    echo ""
+    echo -e "${CYAN}========================================${NC}"
+    echo -e "${GREEN}     SingBox Shell 管理脚本${NC}"
+    echo -e "${CYAN}========================================${NC}"
+    echo -e "${YELLOW}1. 进入完整版菜单${NC}"
+    echo -e "${YELLOW}2. 安装 Lite 版本到 /root/singbox${NC}"
+    echo -e "${YELLOW}3. 退出${NC}"
+    echo -e "${CYAN}========================================${NC}"
+    echo -n -e "${GREEN}请选择操作 [1-3]: ${NC}"
+}
 
-echo -e "${GREEN}脚本下载中,请耐心等待...${NC}"
-echo -e "${YELLOW}注意:安装更新singbox尽量使用代理环境,运行singbox切记关闭代理!${NC}"
+# 安装 lite version 功能
+install_lite_version() {
+    echo -e "${CYAN}开始安装 SingBox Lite 版本...${NC}"
+    
+    # 检查是否为 OpenWRT 系统
+    if ! grep -qi 'openwrt' /etc/os-release; then
+        echo -e "${RED}Lite 版本仅支持 OpenWRT 系统${NC}"
+        return 1
+    fi
+    
+    # 创建目标目录
+    TARGET_DIR="/root/singbox"
+    mkdir -p "$TARGET_DIR"
+    
+    # 当前脚本所在目录
+    CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    
+    # 需要拷贝的文件列表
+    FILES=(
+        "openwrt/install_singbox.sh"
+        "openwrt/manage_autostart.sh"
+        "openwrt/start_singbox.sh"
+        "openwrt/stop_singbox.sh"
+        "openwrt/liteversion/install_lite_version.sh"
+    )
+    
+    echo -e "${CYAN}拷贝文件到 $TARGET_DIR ...${NC}"
+    
+    # 拷贝文件
+    for file in "${FILES[@]}"; do
+        src_file="$CURRENT_DIR/$file"
+        if [ -f "$src_file" ]; then
+            cp "$src_file" "$TARGET_DIR/"
+            chmod +x "$TARGET_DIR/$(basename "$file")"
+            echo -e "${GREEN}已拷贝: $(basename "$file")${NC}"
+        else
+            echo -e "${RED}文件不存在: $src_file${NC}"
+        fi
+    done
+    
+    echo -e "${GREEN}SingBox Lite 版本安装完成！${NC}"
+    echo -e "${CYAN}文件已安装到: $TARGET_DIR${NC}"
+}
 
-if ! [ -f "$SCRIPT_DIR/menu.sh" ]; then
-    echo -e "${RED}下载主脚本失败,请检查网络连接。${NC}"
-    exit 1
-fi
+# 显示菜单并处理用户选择
+while true; do
+    show_menu
+    read -r choice
+    
+    case $choice in
+        1)
+            # 下载并执行主脚本
+            if grep -qi 'openwrt' /etc/os-release; then
+                curl -s -o "$SCRIPT_DIR/menu.sh" "$MAIN_SCRIPT_URL"
+            else
+                wget -q -O "$SCRIPT_DIR/menu.sh" "$MAIN_SCRIPT_URL"
+            fi
 
-chmod +x "$SCRIPT_DIR/menu.sh"
-bash "$SCRIPT_DIR/menu.sh"
+            echo -e "${GREEN}脚本下载中,请耐心等待...${NC}"
+            echo -e "${YELLOW}注意:安装更新singbox尽量使用代理环境,运行singbox切记关闭代理!${NC}"
+
+            if ! [ -f "$SCRIPT_DIR/menu.sh" ]; then
+                echo -e "${RED}下载主脚本失败,请检查网络连接。${NC}"
+                exit 1
+            fi
+
+            chmod +x "$SCRIPT_DIR/menu.sh"
+            bash "$SCRIPT_DIR/menu.sh"
+            break
+            ;;
+        2)
+            install_lite_version
+            echo -n -e "${GREEN}按任意键继续...${NC}"
+            read -r
+            ;;
+        3)
+            echo -e "${GREEN}退出程序${NC}"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}无效选择，请重新输入${NC}"
+            sleep 1
+            ;;
+    esac
+done
