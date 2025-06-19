@@ -22,20 +22,19 @@ else
 fi
 
 # 创建lite版本目录结构
-mkdir -p /root/singbox/config
-mkdir -p /root/singbox/ui
+mkdir -p /etc/sing-box/config
+mkdir -p /etc/sing-box/ui
 
-# 添加启动和停止命令到现有服务脚本
-if [ -f /etc/init.d/sing-box ]; then
-    sed -i '/start_service()/,/}/d' /etc/init.d/sing-box
-    sed -i '/stop_service()/,/}/d' /etc/init.d/sing-box
-fi
+# 创建完整的OpenWrt init脚本
+cat << 'EOF' > /etc/init.d/sing-box
+#!/bin/sh /etc/rc.common
 
-cat << 'EOF' >> /etc/init.d/sing-box
+START=99
+USE_PROCD=1
 
 start_service() {
     procd_open_instance
-    procd_set_param command /usr/bin/sing-box run -c /root/singbox/config/config.json
+    procd_set_param command /usr/bin/sing-box run -c /etc/sing-box/config.json
     procd_set_param respawn
     procd_set_param stderr 1
     procd_set_param stdout 1
@@ -45,16 +44,18 @@ start_service() {
     sleep 3
     
     # 读取模式并应用防火墙规则
-    MODE=$(grep -oE '^MODE=.*' /root/singbox/mode.conf | cut -d'=' -f2)
-    if [ "$MODE" = "TProxy" ]; then
-        /root/singbox/configure_tproxy.sh
-    elif [ "$MODE" = "TUN" ]; then
-        /root/singbox/configure_tun.sh
+    if [ -f /etc/sing-box/mode.conf ]; then
+        MODE=$(grep -oE '^MODE=.*' /etc/sing-box/mode.conf | cut -d'=' -f2)
+        if [ "$MODE" = "TProxy" ]; then
+            /root/singbox/configure_tproxy.sh
+        elif [ "$MODE" = "TUN" ]; then
+            /root/singbox/configure_tun.sh
+        fi
     fi
 }
 
 stop_service() {
-    procd_kill "$NAME" 2>/dev/null
+    procd_kill "sing-box" 2>/dev/null
 }
 EOF
 
