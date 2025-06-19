@@ -168,29 +168,35 @@ install_lite_version() {
     TARGET_DIR="/root/singbox"
     mkdir -p "$TARGET_DIR"
     
-    # 当前脚本所在目录
-    CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # GitHub 原始文件 URL 前缀
+    GITHUB_RAW_URL="https://gh-proxy.com/https://raw.githubusercontent.com/faker2048/sbshell/refs/heads/main"
     
-    # 需要拷贝的文件列表
-    FILES=(
-        "openwrt/install_singbox.sh"
-        "openwrt/manage_autostart.sh"
-        "openwrt/start_singbox.sh"
-        "openwrt/stop_singbox.sh"
-        "openwrt/liteversion/install_lite_version.sh"
+    # 需要下载的文件列表及其目标文件名
+    declare -A FILES=(
+        ["$GITHUB_RAW_URL/openwrt/install_singbox.sh"]="install_singbox.sh"
+        ["$GITHUB_RAW_URL/openwrt/manage_autostart.sh"]="manage_autostart.sh"
+        ["$GITHUB_RAW_URL/openwrt/start_singbox.sh"]="start_singbox.sh"
+        ["$GITHUB_RAW_URL/openwrt/stop_singbox.sh"]="stop_singbox.sh"
+        ["$GITHUB_RAW_URL/openwrt/liteversion/install_lite_version.sh"]="install_lite_version.sh"
     )
     
-    echo -e "${CYAN}拷贝文件到 $TARGET_DIR ...${NC}"
+    echo -e "${CYAN}下载文件到 $TARGET_DIR ...${NC}"
     
-    # 拷贝文件
-    for file in "${FILES[@]}"; do
-        src_file="$CURRENT_DIR/$file"
-        if [ -f "$src_file" ]; then
-            cp "$src_file" "$TARGET_DIR/"
-            chmod +x "$TARGET_DIR/$(basename "$file")"
-            echo -e "${GREEN}已拷贝: $(basename "$file")${NC}"
+    # 下载文件
+    for url in "${!FILES[@]}"; do
+        filename="${FILES[$url]}"
+        target_file="$TARGET_DIR/$filename"
+        
+        echo -e "${YELLOW}正在下载: $filename${NC}"
+        if curl -s -o "$target_file" "$url"; then
+            if [ -f "$target_file" ] && [ -s "$target_file" ]; then
+                chmod +x "$target_file"
+                echo -e "${GREEN}已下载: $filename${NC}"
+            else
+                echo -e "${RED}下载失败: $filename (文件为空或不存在)${NC}"
+            fi
         else
-            echo -e "${RED}文件不存在: $src_file${NC}"
+            echo -e "${RED}下载失败: $filename${NC}"
         fi
     done
     
