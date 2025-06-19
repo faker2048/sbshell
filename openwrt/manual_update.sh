@@ -6,135 +6,113 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # 无颜色
 
-# 手动输入的配置文件
-MANUAL_FILE="/etc/sing-box/manual.conf"
-DEFAULTS_FILE="/etc/sing-box/defaults.conf"
+CONFIG_FILE="/etc/sing-box/config.json"
+BACKUP_FILE="/etc/sing-box/config.json.backup"
 
-# 获取当前模式
-MODE=$(grep '^MODE=' /etc/sing-box/mode.conf | sed 's/^MODE=//')
+echo -e "${CYAN}手动更新 sing-box 配置文件${NC}"
+echo ""
 
-# 提示用户是否更换订阅的函数
-prompt_user_input() {
-    while true; do
-        read -rp "请输入后端地址(不填使用默认值): " BACKEND_URL
-        if [ -z "$BACKEND_URL" ]; then
-            BACKEND_URL=$(grep BACKEND_URL "$DEFAULTS_FILE" 2>/dev/null | cut -d'=' -f2-)
-            if [ -z "$BACKEND_URL" ]; then
-                echo -e "${RED}未设置默认值，请在菜单中设置！${NC}"
-                continue
-            fi
-            echo -e "${CYAN}使用默认后端地址: $BACKEND_URL${NC}"
-        fi
-        break
-    done
-
-    while true; do
-        read -rp "请输入订阅地址(不填使用默认值): " SUBSCRIPTION_URL
-        if [ -z "$SUBSCRIPTION_URL" ]; then
-            SUBSCRIPTION_URL=$(grep SUBSCRIPTION_URL "$DEFAULTS_FILE" 2>/dev/null | cut -d'=' -f2-)
-            if [ -z "$SUBSCRIPTION_URL" ]; then
-                echo -e "${RED}未设置默认值，请在菜单中设置！${NC}"
-                continue
-            fi
-            echo -e "${CYAN}使用默认订阅地址: $SUBSCRIPTION_URL${NC}"
-        fi
-        break
-    done
-
-    while true; do
-        read -rp "请输入配置文件地址(不填使用默认值): " TEMPLATE_URL
-        if [ -z "$TEMPLATE_URL" ]; then
-            if [ "$MODE" = "TProxy" ]; then
-                TEMPLATE_URL=$(grep TPROXY_TEMPLATE_URL "$DEFAULTS_FILE" 2>/dev/null | cut -d'=' -f2-)
-                if [ -z "$TEMPLATE_URL" ]; then
-                    echo -e "${RED}未设置默认值，请在菜单中设置！${NC}"
-                    continue
-                fi
-                echo -e "${CYAN}使用默认 TProxy 配置文件地址: $TEMPLATE_URL${NC}"
-            elif [ "$MODE" = "TUN" ]; then
-                TEMPLATE_URL=$(grep TUN_TEMPLATE_URL "$DEFAULTS_FILE" 2>/dev/null | cut -d'=' -f2-)
-                if [ -z "$TEMPLATE_URL" ]; then
-                    echo -e "${RED}未设置默认值，请在菜单中设置！${NC}"
-                    continue
-                fi
-                echo -e "${CYAN}使用默认 TUN 配置文件地址: $TEMPLATE_URL${NC}"
-            else
-                echo -e "${RED}未知的模式: $MODE${NC}"
-                exit 1
-            fi
-        fi
-        break
-    done
+# 备份当前配置
+backup_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        cp "$CONFIG_FILE" "$BACKUP_FILE"
+        echo -e "${GREEN}已备份当前配置到: $BACKUP_FILE${NC}"
+    fi
 }
 
-read -rp "是否更换订阅地址？(y/n): " change_subscription
-if [[ "$change_subscription" =~ ^[Yy]$ ]]; then
-    # 执行手动输入相关内容
-    while true; do
-        prompt_user_input
-
-        echo -e "${CYAN}你输入的配置信息如下:${NC}"
-        echo "后端地址: $BACKEND_URL"
-        echo "订阅地址: $SUBSCRIPTION_URL"
-        echo "配置文件地址: $TEMPLATE_URL"
-
-        read -rp "确认输入的配置信息？(y/n): " confirm_choice
-        if [[ "$confirm_choice" =~ ^[Yy]$ ]]; then
-            # 更新手动输入的配置文件
-            cat > "$MANUAL_FILE" <<EOF
-BACKEND_URL=$BACKEND_URL
-SUBSCRIPTION_URL=$SUBSCRIPTION_URL
-TEMPLATE_URL=$TEMPLATE_URL
-EOF
-
-            echo "手动输入的配置已更新"
-            break
-        else
-            echo -e "${RED}请重新输入配置信息。${NC}"
-        fi
-    done
-else
-    if [ ! -f "$MANUAL_FILE" ]; then
-        echo -e "${RED}订阅地址为空，请设置！${NC}"
-        exit 1
+# 恢复备份配置
+restore_backup() {
+    if [ -f "$BACKUP_FILE" ]; then
+        cp "$BACKUP_FILE" "$CONFIG_FILE"
+        echo -e "${GREEN}已恢复备份配置${NC}"
     fi
+}
 
-    # 使用现有配置，并输出调试信息
-    BACKEND_URL=$(grep BACKEND_URL "$MANUAL_FILE" 2>/dev/null | cut -d'=' -f2-)
-    SUBSCRIPTION_URL=$(grep SUBSCRIPTION_URL "$MANUAL_FILE" 2>/dev/null | cut -d'=' -f2-)
-    TEMPLATE_URL=$(grep TEMPLATE_URL "$MANUAL_FILE" 2>/dev/null | cut -d'=' -f2-)
-
-    if [ -z "$BACKEND_URL" ] || [ -z "$SUBSCRIPTION_URL" ] || [ -z "$TEMPLATE_URL" ]; then
-        echo -e "${RED}订阅地址为空，请设置！${NC}"
-        exit 1
-    fi
-
-    echo -e "${CYAN}当前配置如下:${NC}"
-    echo "后端地址: $BACKEND_URL"
-    echo "订阅地址: $SUBSCRIPTION_URL"
-    echo "配置文件地址: $TEMPLATE_URL"
-fi
-
-# 构建完整的配置文件URL
-FULL_URL="${BACKEND_URL}/config/${SUBSCRIPTION_URL}&file=${TEMPLATE_URL}"
-echo "生成完整订阅链接: $FULL_URL"
-
-# 备份现有配置文件
-[ -f "/etc/sing-box/config.json" ] && cp /etc/sing-box/config.json /etc/sing-box/config.json.backup
-
-if curl -L --connect-timeout 10 --max-time 30 "$FULL_URL" -o /etc/sing-box/config.json; then
-    echo -e "${GREEN}配置文件更新成功!${NC}"
-    if ! sing-box check -c /etc/sing-box/config.json; then
+# 验证配置文件
+validate_config() {
+    if ! sing-box check -c "$CONFIG_FILE"; then
         echo -e "${RED}配置文件验证失败，恢复备份...${NC}"
-        [ -f "/etc/sing-box/config.json.backup" ] && cp /etc/sing-box/config.json.backup /etc/sing-box/config.json
+        restore_backup
+        return 1
     fi
-else
-    echo -e "${RED}配置文件下载失败，恢复备份...${NC}"
-    [ -f "/etc/sing-box/config.json.backup" ] && cp /etc/sing-box/config.json.backup /etc/sing-box/config.json
-fi
+    return 0
+}
 
-# 重启sing-box并检查启动状态
-/etc/init.d/sing-box start
+# 处理本地文件
+handle_local_file() {
+    local source_path="$1"
+    
+    if [ ! -f "$source_path" ]; then
+        echo -e "${RED}本地文件不存在: $source_path${NC}"
+        return 1
+    fi
+    
+    backup_config
+    cp "$source_path" "$CONFIG_FILE"
+    echo -e "${GREEN}已复制本地文件到配置目录${NC}"
+    
+    if validate_config; then
+        echo -e "${GREEN}配置文件更新成功！${NC}"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# 处理远程文件
+handle_remote_file() {
+    local url="$1"
+    
+    backup_config
+    
+    if wget -O "$CONFIG_FILE" "$url" --timeout=30; then
+        echo -e "${GREEN}已下载远程配置文件${NC}"
+        
+        if validate_config; then
+            echo -e "${GREEN}配置文件更新成功！${NC}"
+            return 0
+        else
+            return 1
+        fi
+    else
+        echo -e "${RED}下载失败，恢复备份...${NC}"
+        restore_backup
+        return 1
+    fi
+}
+
+# 主逻辑
+while true; do
+    read -rp "请输入配置文件路径或URL: " input_path
+    
+    if [ -z "$input_path" ]; then
+        echo -e "${RED}路径不能为空${NC}"
+        continue
+    fi
+    
+    # 判断是本地文件还是远程URL
+    if [[ "$input_path" =~ ^https?:// ]]; then
+        echo -e "${CYAN}检测到远程URL，开始下载...${NC}"
+        if handle_remote_file "$input_path"; then
+            break
+        fi
+    else
+        echo -e "${CYAN}检测到本地路径，开始复制...${NC}"
+        if handle_local_file "$input_path"; then
+            break
+        fi
+    fi
+    
+    read -rp "操作失败，是否重试？(y/n): " retry
+    if [[ ! "$retry" =~ ^[Yy]$ ]]; then
+        echo -e "${RED}操作已取消${NC}"
+        exit 1
+    fi
+done
+
+# 重启sing-box
+echo -e "${CYAN}重启 sing-box 服务...${NC}"
+/etc/init.d/sing-box restart
 
 if /etc/init.d/sing-box status | grep -q "running"; then
     echo -e "${GREEN}sing-box 启动成功${NC}"
