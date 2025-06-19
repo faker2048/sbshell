@@ -143,7 +143,7 @@ install_lite_version() {
     
     # 需要下载的文件列表及其目标文件名
     declare -A FILES=(
-        ["$GITHUB_RAW_URL/openwrt/install_singbox.sh"]="install_singbox.sh"
+        ["$GITHUB_RAW_URL/openwrt/liteversion/update_config.sh"]="update_config.sh"
         ["$GITHUB_RAW_URL/openwrt/manage_autostart.sh"]="manage_autostart.sh"
         ["$GITHUB_RAW_URL/openwrt/start_singbox.sh"]="start_singbox.sh"
         ["$GITHUB_RAW_URL/openwrt/stop_singbox.sh"]="stop_singbox.sh"
