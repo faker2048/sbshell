@@ -34,11 +34,5 @@ start_singbox() {
     fi
 }
 
-# 提示用户确认是否启动
-read -rp "是否启动 sing-box?(y/n): " confirm_start
-if [[ "$confirm_start" =~ ^[Yy]$ ]]; then
-    start_singbox
-else
-    echo -e "${CYAN}已取消启动 sing-box。${NC}"
-    exit 0
-fi
+start_singbox
+

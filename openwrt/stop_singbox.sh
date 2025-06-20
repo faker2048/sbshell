@@ -29,10 +29,5 @@ stop_singbox() {
     fi
 }
 
-read -rp "是否停止 sing-box?(y/n): " confirm_stop
-if [[ "$confirm_stop" =~ ^[Yy]$ ]]; then
-    stop_singbox
-else
-    echo -e "${CYAN}已取消停止 sing-box。${NC}"
-    exit 0
-fi
+stop_singbox
+
