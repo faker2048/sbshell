@@ -22,7 +22,7 @@ stop_singbox() {
     read -rp "是否清理防火墙规则？(y/n): " confirm_cleanup
     if [[ "$confirm_cleanup" =~ ^[Yy]$ ]]; then
         echo -e "${CYAN}执行清理防火墙规则...${NC}"
-        bash "$SCRIPT_DIR/clean_nft.sh"
+        nft list table inet sing-box >/dev/null 2>&1 && nft delete table inet sing-box
         echo -e "${GREEN}防火墙规则清理完毕${NC}"
     else
         echo -e "${CYAN}已取消清理防火墙规则。${NC}"
