@@ -25,6 +25,9 @@ fi
 mkdir -p /etc/sing-box/config
 mkdir -p /etc/sing-box/ui
 
+# 创建默认模式配置文件
+echo "MODE=TUN" > /etc/sing-box/mode.conf
+
 # 创建完整的OpenWrt init脚本
 cat << 'EOF' > /etc/init.d/sing-box
 #!/bin/sh /etc/rc.common
